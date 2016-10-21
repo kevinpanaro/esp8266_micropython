@@ -25,3 +25,11 @@ Bugs:
 When setting the color in Home Assistant's dev tools, if you send something like "{"color":"red"}" it while go to white then if you press it again, it will go to red. Not sure why.
 
 Brightness of the colors. If you have a color on and then change the brightness, it turns to white.
+
+Purchase List:
+[NodeMCU v2](http://www.ebay.com/itm/like/251980906073?lpid=82&chn=ps&ul_noapp=true)
+	any NodeMCU should be good, but make sure its the [official kind](http://frightanic.com/iot/comparison-of-esp8266-nodemcu-development-boards/)
+
+[WS2812](http://www.aliexpress.com/w/wholesale-ws2812.html)
+    any of these work, you'll need a power supply, 5V,
+    if it's a small strip you might be able to do what I did and cut an old phone changer and solder to female ends of wires to them and connect it with that.
