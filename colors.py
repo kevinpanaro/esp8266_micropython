@@ -57,23 +57,6 @@ def publish_rbg_state(colors):
     c.publish(RGB_STATE_TOPIC, colors)
     print("Publish %s to %s" % (colors, RGB_STATE_TOPIC))
 
-def set_brightness(on, brightness):
-    if on and brightness != 0:
-        for led in range(NUM_OF_LEDS):
-            NEOPIXEL[led]=(brightness,brightness,brightness)
-    else:
-        for led in range(NUM_OF_LEDS):
-            NEOPIXEL[led]=(0,0,0)
-    NEOPIXEL.write()
-
-def set_color(color, brightness):
-    red = int(color[0]*(brightness/255))
-    green = int(color[0]*(brightness/255))
-    blue = int(color[0]*(brightness/255))
-    for led in range(NUM_OF_LEDS):
-        NEOPIXEL[led] = (red, green, blue)
-    NEOPIXEL.write()
-
 def set_led(on=True, brightness=255, color=False):
     '''on is True or False
     brightness is 0-255
@@ -95,12 +78,6 @@ def set_led(on=True, brightness=255, color=False):
             for led in range(NUM_OF_LEDS):
                 NEOPIXEL[led] = (brightness, brightness, brightness)
     NEOPIXEL.write()
-
-def set_light(brightness=255):
-    if STATE == 1:
-        set_brightness(True, brightness)
-    else:
-        set_brightness(False, brightness)
 
 def sub_cb(topic, msg):
     global STATE
