@@ -38,5 +38,7 @@ Purchase List:
 Examples:
 
 police.py: simple police lights example
+
 wipe.py: wipe color across the strip
+
 rainbow.py: show rainbow on LEDs, SEPERATION is how far the next LED is from the previous in terms of color
