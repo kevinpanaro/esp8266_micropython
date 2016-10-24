@@ -33,3 +33,10 @@ Purchase List:
 [WS2812](http://www.aliexpress.com/w/wholesale-ws2812.html)
     any of these work, you'll need a power supply, 5V,
     if it's a small strip you might be able to do what I did and cut an old phone changer and solder to female ends of wires to them and connect it with that.
+
+
+Examples:
+
+police.py: simple police lights example
+wipe.py: wipe color across the strip
+rainbow.py: show rainbow on LEDs, SEPERATION is how far the next LED is from the previous in terms of color
