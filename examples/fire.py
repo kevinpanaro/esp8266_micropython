@@ -16,6 +16,7 @@ def fire(color=ORANGE_FLAME, flicker_intensity=5):
 	while True:
 		for led in range(NUM_OF_LEDS):
 			flicker = getrandbits(flicker_intensity)
+			flicker = 100 if flicker>100 else flicker
 			r, g, b = hsv_to_rgb(color, 1, (100-flicker)/100)
 			NEOPIXEL[led] = tuple(int(x*255) for x in hsv_to_rgb(color, 1, (100-flicker)/100))
 		NEOPIXEL.write()

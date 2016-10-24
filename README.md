@@ -42,3 +42,9 @@ police.py: simple police lights example
 wipe.py: wipe color across the strip
 
 rainbow.py: show rainbow on LEDs, SEPERATION is how far the next LED is from the previous in terms of color
+
+strobe.py: a strobe light
+
+on_off.py: type the led index you want to turn on, and then turn it on. and then off again
+
+fire.py: fire flicker on led strip. flicker_intensity gets weird at high numbers since there is no random.randint().  we use getrandbits() :(
