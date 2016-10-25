@@ -48,3 +48,12 @@ strobe.py: a strobe light
 on_off.py: type the led index you want to turn on, and then turn it on. and then off again
 
 fire.py: fire flicker on led strip. flicker_intensity gets weird at high numbers since there is no random.randint().  we use getrandbits() :(
+
+smooth.py: smooth transistions from one color to the next
+
+hsv\_to\_rgb.py: hsv to rgb simple script in own file. good for rainbow.
+
+
+TO DO:
+
+Add json support! I will be working on this in the next week or so.
