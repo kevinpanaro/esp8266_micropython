@@ -39,6 +39,7 @@ NEOPIXEL = NeoPixel(PIN, 6)
 LIGHT_BRIGHTNESS = 255
 STATE = 0
 NUM_OF_LEDS = 6
+OLD = (0,0,0)
 
 def publish_light_state():
     if STATE == 1:
@@ -46,15 +47,15 @@ def publish_light_state():
         print("Publish ON to %s" % STATE_TOPIC)
     else:
         c.publish(STATE_TOPIC, "OFF")
-        print("Publish ON to %s" % STATE_TOPIC)
+        print("Publish OFF to %s" % STATE_TOPIC)
 
 def publish_rgb_brightness():
     c.publish(BRIGHTNESS_STATE_TOPIC, str(LIGHT_BRIGHTNESS))
     print("Publish %s to %s" % (str(LIGHT_BRIGHTNESS), BRIGHTNESS_STATE_TOPIC))
 
-def publish_rbg_state(colors):
+def publish_rgb_state(colors):
     colors = ",".join(colors)
-    c.publish(RGB_STATE_TOPIC, colors)
+    c.publish(RGB_STATE_TOPIC, colors, retain=True)
     print("Publish %s to %s" % (colors, RGB_STATE_TOPIC))
 
 def set_led(on=True, brightness=255, color=False):
@@ -62,25 +63,42 @@ def set_led(on=True, brightness=255, color=False):
     brightness is 0-255
     color is list [red, green, blue]
     '''
+    global OLD
     if not on:
-        for led in range(NUM_OF_LEDS):
-            NEOPIXEL[led]=(0,0,0)
+        new = (0, 0, 0)
+        transition(OLD, new, 50)
     elif on:
         if color:
             red = int(color[0])
             green = int(color[1])
             blue = int(color[2])
-            for led in range(NUM_OF_LEDS):
-                NEOPIXEL[led] = (red, green, blue)
-            NEOPIXEL.write()
-            return
+            new = (red, green, blue)
+            transition(OLD, new, 75)
         else:
-            for led in range(NUM_OF_LEDS):
-                NEOPIXEL[led] = (brightness, brightness, brightness)
-    NEOPIXEL.write()
+            new = (brightness, brightness, brightness)
+            transition(OLD, new, 75)
+
+def transition(old, new, trasnition):
+    global OLD
+    red = list(linspace(old[0], new[0], trasnition))
+    green = list(linspace(old[1], new[1], trasnition))
+    blue = list(linspace(old[2], new[2], trasnition))
+    for color in zip(red,green,blue):
+        for led in range(NUM_OF_LEDS):
+            NEOPIXEL[led] = color
+        NEOPIXEL.write()
+    OLD = new
+
+def linspace(a,b, n=100):
+    if n < 2:
+        yield b
+    diff = (float(b) - a)/(n - 1)
+    for i in range(n):
+        yield int(round(diff * i + a))
 
 def sub_cb(topic, msg):
     global STATE
+    # global OLD
     print((topic, msg))
     if topic == COMMAND_TOPIC:
         if msg == b"ON":
@@ -110,9 +128,11 @@ def sub_cb(topic, msg):
         except NameError:
             LIGHT_BRIGHTNESS = 255
             set_led(on=True, brightness=LIGHT_BRIGHTNESS, color=colors)
-        publish_rbg_state(colors)
+        publish_rgb_state(colors)
+        
 
 def reconnect():
+    c.set_callback(sub_cb)
     c.connect()
     publish_light_state()
     publish_rgb_brightness()
@@ -132,7 +152,6 @@ def main(server=SERVER):
     print('network config:', wlan.ifconfig())
     c = MQTTClient(CLIENT_ID, server)
     # Subscribed messages will be delivered to this callback
-    c.set_callback(sub_cb)
     reconnect()
     print("Connected to %s, subscribed to %s topic" % (server, COMMAND_TOPIC))
     try:
