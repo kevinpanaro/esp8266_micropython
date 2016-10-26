@@ -57,11 +57,7 @@ def set_led(on=True, brightness=255, color=False):
         smooth(RGB_STATE, new, 50)
     elif on:
         if color:
-            red = int(color[0])
-            green = int(color[1])
-            blue = int(color[2])
-            new = (red, green, blue)
-            smooth(RGB_STATE, new, 75)
+            smooth(RGB_STATE, color, 75)
         else:
             new = (brightness, brightness, brightness)
             smooth(RGB_STATE, new, 75)
@@ -113,7 +109,7 @@ def sub_cb(topic, msg):
             publish_payload(BRIGHTNESS_STATE_TOPIC, brightness)
     elif topic == RGB_COMMAND_TOPIC:
         colors = msg.decode("utf-8").split(',')
-        set_led(on=True, brightness=False, color=colors)
+        set_led(on=True, brightness=False, color=tuple([int(color) for color in colors]))
         publish_payload(RGB_STATE_TOPIC, ",".join(colors))
         
 
