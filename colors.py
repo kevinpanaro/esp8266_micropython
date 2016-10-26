@@ -38,7 +38,7 @@ NUM_OF_LEDS = 6
 PIN = Pin(LED_PIN, Pin.OUT)
 NEOPIXEL = NeoPixel(PIN, NUM_OF_LEDS)
 BRIGHTNESS_STATE = 0
-STATE = 0       # I don't know but this is really important for some reason.
+STATE = "OFF"       # I don't know but this is really important for some reason.
 RGB_STATE = (0,0,0)
 
 def publish_payload(topic, payload):
@@ -93,19 +93,17 @@ def linspace(a,b, n=100):
 def sub_cb(topic, msg):
     global STATE
     if topic == COMMAND_TOPIC:
-        if msg == b"ON":
-            if STATE == 0:
-                STATE = 1
-                set_led(on=True, brightness=255, color=False)
-                publish_payload(STATE_TOPIC, "ON")
-                publish_payload(BRIGHTNESS_STATE_TOPIC, 255)
-        elif msg == b"OFF":
-            if STATE == 1:
-                STATE = 0
-                BRIGHTNESS_STATE = 0
-                set_led(on=False)
-                publish_payload(STATE_TOPIC, "OFF")
-                publish_payload(BRIGHTNESS_STATE_TOPIC, 0)
+        if msg == b"ON" and STATE == "OFF":
+            STATE = "ON"
+            set_led(on=True, brightness=255, color=False)
+            publish_payload(STATE_TOPIC, "ON")
+            publish_payload(BRIGHTNESS_STATE_TOPIC, 255)
+        elif msg == b"OFF" and STATE == "ON":
+            STATE = "OFF"
+            BRIGHTNESS_STATE = 0
+            set_led(on=False)
+            publish_payload(STATE_TOPIC, "OFF")
+            publish_payload(BRIGHTNESS_STATE_TOPIC, 0)
     elif topic == BRIGHTNESS_COMMAND_TOPIC:
         brightness = int(msg)
         if brightness < 0 or brightness > 255:
