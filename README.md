@@ -1,5 +1,11 @@
 # esp8266_micropython
 ###### MQTT light component for Home Assistant with ws2812 LED's, and an esp8266 (Nodemcu) flashed with MicroPython
+
+####Features:
+1). Control your MQTT Lights from Home Assistant
+2). When a color is picked, the relative brightness of that color is set on the brightness slider
+3). When a color is picked, and the brightness slider moved, the current color moves as well
+
 ##Setup the Board:
 I used [esptool.py](https://github.com/themadinventor/esptool) to flash the micropython to the board
 
@@ -7,7 +13,7 @@ This is the version of [MicroPython](https://github.com/micropython/micropython/
 Flashing the board is pretty straight forward, the docs for MicroPython tell you what settings you'd need to change if any.
 
 
-##Connecting to the Board:
+###Connecting to the Board:
 
 I used Adafruits [ampy](https://github.com/adafruit/ampy) to put all my files onto the board.
 
@@ -25,7 +31,7 @@ When setting the color in Home Assistant's dev tools, if you send something like
 
 Brightness of the colors. If you have a color on and then change the brightness, it turns to white.
 
-Purchase List:
+###Purchase List:
 [NodeMCU v2](http://www.ebay.com/itm/like/251980906073?lpid=82&chn=ps&ul_noapp=true)
 	any NodeMCU should be good, but make sure its the [official kind](http://frightanic.com/iot/comparison-of-esp8266-nodemcu-development-boards/)
 
