@@ -6,9 +6,6 @@
 2. When a color is picked, the relative brightness of that color is set on the brightness slider
 3. When a color is picked, and the brightness slider moved, the current color moves as well
 
-###Shitty Example
-![Example](http://i.imgur.com/BQmXsge.gif)
-
 ###Setup the Board:
 I used [esptool.py](https://github.com/themadinventor/esptool) to flash the micropython to the board
 
