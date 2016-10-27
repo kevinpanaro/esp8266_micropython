@@ -1,6 +1,9 @@
 from umqtt.simple import MQTTClient
 from machine import Pin
 from neopixel import NeoPixel
+from time import sleep
+from tools.hsv_to_rgb import hsv_to_rgb as htr
+from tools.rgb_to_hsv import rgb_to_hsv as rth
 import ubinascii
 import machine
 import micropython
@@ -37,46 +40,56 @@ LED_PIN = 5
 NUM_OF_LEDS = 6
 PIN = Pin(LED_PIN, Pin.OUT)
 NEOPIXEL = NeoPixel(PIN, NUM_OF_LEDS)
-BRIGHTNESS_STATE = 0
-STATE = "OFF"       # I don't know but this is really important for some reason.
-RGB_STATE = (0,0,0)
+BRIGHTNESS_STATE = 0    # last known brightness state
+STATE = "OFF"           # I don't know but this is really important for some reason.
+RGB_STATE = (0, 0, 0)   # last known set RGB state 
+LIGHT_STATE = (0, 0, 0) # last known light state
 
 def publish_payload(topic, payload):
     '''publish to a topic with a payload'''
     c.publish(topic, str(payload))
     print("[Publish]\t%s => %s" % (topic, str(payload)))
 
-def set_led(on=True, brightness=255, color=False):
+def get_hsv_value(colors):
+    '''returns value in hsv'''
+    r, g, b = [int(color)/255.0 for color in colors]
+    h, s, v = rth(r, g, b)
+    return h, s, v
+
+def get_rgb_value(color, new_v):
+    h, s, _ = get_hsv_value(color)
+    r, g, b = [int(round(color*255)) for color in htr(h, s, new_v)]
+    return r, g, b
+
+def set_led(on=False, brightness=False, color=(0,0,0)):
     '''on is True or False
     brightness is 0-255
     color is list [red, green, blue]
     '''
-    global RGB_STATE
+    global LIGHT_STATE
     if not on:
-        new = (0, 0, 0)
-        smooth(RGB_STATE, new, 50)
+        smooth(LIGHT_STATE, color, 50)
     elif on:
         if color:
-            smooth(RGB_STATE, color, 75)
-        else:
-            new = (brightness, brightness, brightness)
-            smooth(RGB_STATE, new, 75)
+            smooth(LIGHT_STATE, color, 75)
+
 
 def smooth(old, new, smooth, transition=0):
-    '''old is deprecated, probably going to be replaced by RGB_STATE
+    '''old is deprecated, probably going to be replaced by LIGHT_STATE
     new is the new color (RED, GREEN, BLUE)
     smooth is how many "frames" of color to create and display
     transition is seconds to transit from one color to the next
     transition is 0 right now, but will be implimented with MQTT JSON'''
-    global RGB_STATE
-    red = list(linspace(RGB_STATE[0], new[0], smooth))
-    green = list(linspace(RGB_STATE[1], new[1], smooth))
-    blue = list(linspace(RGB_STATE[2], new[2], smooth))
+    global LIGHT_STATE
+    red = list(linspace(LIGHT_STATE[0], new[0], smooth))
+    green = list(linspace(LIGHT_STATE[1], new[1], smooth))
+    blue = list(linspace(LIGHT_STATE[2], new[2], smooth))
     for color in zip(red,green,blue):
         for led in range(NUM_OF_LEDS):
             NEOPIXEL[led] = color
         NEOPIXEL.write()
-    RGB_STATE = new
+        sleep(transition/smooth)
+    LIGHT_STATE = new
 
 
 def linspace(a,b, n=100):
@@ -88,29 +101,37 @@ def linspace(a,b, n=100):
 
 def sub_cb(topic, msg):
     global STATE
+    global RGB_STATE
     if topic == COMMAND_TOPIC:
         if msg == b"ON" and STATE == "OFF":
             STATE = "ON"
-            set_led(on=True, brightness=255, color=False)
+            RGB_STATE = (255, 255, 255)
             publish_payload(STATE_TOPIC, "ON")
             publish_payload(BRIGHTNESS_STATE_TOPIC, 255)
+            set_led(on=True, color=RGB_STATE)
         elif msg == b"OFF" and STATE == "ON":
             STATE = "OFF"
             BRIGHTNESS_STATE = 0
-            set_led(on=False)
+            RGB_STATE = (0, 0, 0)
             publish_payload(STATE_TOPIC, "OFF")
             publish_payload(BRIGHTNESS_STATE_TOPIC, 0)
+            set_led(on=False, color=RGB_STATE)
     elif topic == BRIGHTNESS_COMMAND_TOPIC:
         brightness = int(msg)
         if brightness < 0 or brightness > 255:
             return
         else:
-            set_led(on=True, brightness=brightness, color=False)
+            colors = tuple(get_rgb_value(RGB_STATE, brightness/255.0))
             publish_payload(BRIGHTNESS_STATE_TOPIC, brightness)
+            publish_payload(RGB_STATE_TOPIC, ",".join([str(color) for color in colors]))
+            set_led(on=True, color=colors)
     elif topic == RGB_COMMAND_TOPIC:
         colors = msg.decode("utf-8").split(',')
-        set_led(on=True, brightness=False, color=tuple([int(color) for color in colors]))
+        RGB_STATE = colors
+        _, _, v = get_hsv_value(colors)
+        publish_payload(BRIGHTNESS_STATE_TOPIC, int(v*255))
         publish_payload(RGB_STATE_TOPIC, ",".join(colors))
+        set_led(on=True, color=tuple([int(color) for color in colors]))
         
 
 def reconnect():
@@ -118,7 +139,7 @@ def reconnect():
     c.connect()
     publish_payload(STATE_TOPIC, STATE)
     publish_payload(BRIGHTNESS_STATE_TOPIC, BRIGHTNESS_STATE)
-    publish_payload(RGB_STATE_TOPIC, RGB_STATE)
+    publish_payload(RGB_STATE_TOPIC, LIGHT_STATE)
     c.subscribe(COMMAND_TOPIC)
     c.subscribe(BRIGHTNESS_COMMAND_TOPIC)
     c.subscribe(RGB_COMMAND_TOPIC)
@@ -135,6 +156,7 @@ def main(server=SERVER):
     print('[Network Config]\n ', wlan.ifconfig())
     c = MQTTClient(CLIENT_ID, server)
     reconnect()
+    set_led()       # sets led to off
     try:
         while True:
             if not wlan.isconnected():
