@@ -1,12 +1,12 @@
-from umqtt.simple import MQTTClient
-from machine import Pin
+from hsv_to_rgb import hsv_to_rgb as htr
+from rgb_to_hsv import rgb_to_hsv as rth
+from simple import MQTTClient
 from neopixel import NeoPixel
+from machine import Pin
 from time import sleep
-from tools.hsv_to_rgb import hsv_to_rgb as htr
-from tools.rgb_to_hsv import rgb_to_hsv as rth
+from sys import exit
 import ubinascii
 import machine
-import micropython
 import network
 # ESP8266 ESP-12 modules have blue, active-low LED on GPIO2, replace
 # with something else if needed.
@@ -22,11 +22,11 @@ light:
     rgb_command_topic: 'led/rgb/set'
 '''
 # Wifi 
-SSID = ""
-PASS = ""
+SSID = "Home"
+PASS = "***REMOVED***"
 
-# Default MQTT server to connect to
-SERVER = "192.168.0.14"
+# MQTT server to connect to 
+SERVER = "172.16.0.30" 
 CLIENT_ID = ubinascii.hexlify(machine.unique_id())
 STATE_TOPIC= b"led/status"
 COMMAND_TOPIC = b"led/switch"
@@ -34,14 +34,16 @@ BRIGHTNESS_STATE_TOPIC = b'led/brightness/status'
 BRIGHTNESS_COMMAND_TOPIC = b'led/brightness/set'
 RGB_STATE_TOPIC = b'led/rgb/status'
 RGB_COMMAND_TOPIC = b'led/rgb/set'
+KILL_COMMAND_TOPIC = b'led/kill'
+KILL_STATE_TOPIC = b'led/alive'
 
 # Pin for NODEMCU and Neopixel
 LED_PIN = 5
 NUM_OF_LEDS = 6
 PIN = Pin(LED_PIN, Pin.OUT)
 NEOPIXEL = NeoPixel(PIN, NUM_OF_LEDS)
-BRIGHTNESS_STATE = 0    # last known brightness state
-STATE = "OFF"           # I don't know but this is really important for some reason.
+BRIGHTNESS_STATE = 0    # last known brightness state (DO NOT NEED)
+STATE = "OFF"           # last known state (ON, OFF)
 RGB_STATE = (0, 0, 0)   # last known set RGB state 
 LIGHT_STATE = (0, 0, 0) # last known light state
 
@@ -56,30 +58,30 @@ def get_hsv_value(colors):
     h, s, v = rth(r, g, b)
     return h, s, v
 
-def get_rgb_value(color, new_v):
+def get_rgb_value(color, new_value):
+    '''returns value in rgb'''
     h, s, _ = get_hsv_value(color)
-    r, g, b = [int(round(color*255)) for color in htr(h, s, new_v)]
+    r, g, b = [int(round(color*255)) for color in htr(h, s, new_value)]
     return r, g, b
 
-def set_led(on=False, brightness=False, color=(0,0,0)):
-    '''on is True or False
-    brightness is 0-255
+def set_led(on=False, color=(0,0,0)):
+    '''
+    on is True or False
     color is list [red, green, blue]
     '''
-    global LIGHT_STATE
     if not on:
-        smooth(LIGHT_STATE, color, 50)
+        smooth(color, 50)
     elif on:
         if color:
-            smooth(LIGHT_STATE, color, 75)
+            smooth(color, 75)
 
-
-def smooth(old, new, smooth, transition=0):
-    '''old is deprecated, probably going to be replaced by LIGHT_STATE
+def smooth(new, smooth, transition=0):
+    '''
     new is the new color (RED, GREEN, BLUE)
     smooth is how many "frames" of color to create and display
     transition is seconds to transit from one color to the next
-    transition is 0 right now, but will be implimented with MQTT JSON'''
+    transition is 0 right now, but will be implimented with MQTT JSON
+    '''
     global LIGHT_STATE
     red = list(linspace(LIGHT_STATE[0], new[0], smooth))
     green = list(linspace(LIGHT_STATE[1], new[1], smooth))
@@ -90,7 +92,6 @@ def smooth(old, new, smooth, transition=0):
         NEOPIXEL.write()
         sleep(transition/smooth)
     LIGHT_STATE = new
-
 
 def linspace(a,b, n=100):
     if n < 2:
@@ -111,7 +112,6 @@ def sub_cb(topic, msg):
             set_led(on=True, color=RGB_STATE)
         elif msg == b"OFF" and STATE == "ON":
             STATE = "OFF"
-            BRIGHTNESS_STATE = 0
             RGB_STATE = (0, 0, 0)
             publish_payload(STATE_TOPIC, "OFF")
             publish_payload(BRIGHTNESS_STATE_TOPIC, 0)
@@ -132,17 +132,27 @@ def sub_cb(topic, msg):
         publish_payload(BRIGHTNESS_STATE_TOPIC, int(v*255))
         publish_payload(RGB_STATE_TOPIC, ",".join(colors))
         set_led(on=True, color=tuple([int(color) for color in colors]))
-        
+    elif topic == KILL_COMMAND_TOPIC:
+        if msg == b'dead':
+            publish_payload(STATE_TOPIC, "OFF")
+            publish_payload(BRIGHTNESS_STATE_TOPIC, 0)
+            publish_payload(KILL_STATE_TOPIC, "dead")
+            set_led()
+            exit()
+        else:
+            publish_payload(KILL_STATE_TOPIC, "alive")
 
 def reconnect():
     c.set_callback(sub_cb)
     c.connect()
     publish_payload(STATE_TOPIC, STATE)
-    publish_payload(BRIGHTNESS_STATE_TOPIC, BRIGHTNESS_STATE)
+    publish_payload(BRIGHTNESS_STATE_TOPIC, 0)
     publish_payload(RGB_STATE_TOPIC, LIGHT_STATE)
+    publish_payload(KILL_STATE_TOPIC, "alive")
     c.subscribe(COMMAND_TOPIC)
     c.subscribe(BRIGHTNESS_COMMAND_TOPIC)
     c.subscribe(RGB_COMMAND_TOPIC)
+    c.subscribe(KILL_COMMAND_TOPIC)
 
 def main(server=SERVER):
     global c
