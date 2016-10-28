@@ -20,10 +20,18 @@ light:
     brightness_command_topic: 'led/brightness/set'
     rgb_state_topic: 'led/rgb/status'
     rgb_command_topic: 'led/rgb/set'
+
+switch:
+  - platform: mqtt
+    name: test mqtt kill switch
+    command_topic: 'led/kill'
+    state_topic: 'led/alive'
+    payload_on: "alive"
+    payload_off: "dead"
 '''
 # Wifi 
-SSID = "Home"
-PASS = "***REMOVED***"
+SSID = ""
+PASS = ""
 
 # MQTT server to connect to 
 SERVER = "172.16.0.30" 
