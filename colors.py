@@ -31,8 +31,8 @@ switch:
     payload_off: "dead"
 '''
 # Wifi 
-SSID = "StewNkrew"
-PASS = "***REMOVED***"
+SSID = ""
+PASS = ""
 
 # MQTT server to connect to 
 SERVER = "192.168.0.10" 
