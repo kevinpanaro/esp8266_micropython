@@ -7,7 +7,7 @@
 3. When a color is picked, and the brightness slider moved, the current color moves as well
 
 ###Short and Sweet
-All you  need is the all-in-modules.bin and colors.py. flash all-in-modules.bin to the board, and copy colors.py to the board, named as main.py.
+All you  need is the all-in-modules.bin and colors.py. flash no-webrepl.bin to the board, and copy colors.py to the board, named as main.py.
 
 
 ###Setup the Board:
