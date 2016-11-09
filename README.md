@@ -7,7 +7,7 @@
 3. When a color is picked, and the brightness slider moved, the current color moves as well
 
 ###Short and Sweet
-All you  need is the all-in-modules.bin and colors.py. flash no-webrepl.bin to the board, and copy colors.py to the board, named as main.py.
+All you  need is the no-webrepl.bin and mlight.py. flash no-webrepl.bin to the board, and copy mlight.py to the board, named as main.py.
 
 
 ###Setup the Board:
@@ -26,7 +26,7 @@ Check out this [tutorial](https://home-assistant.io/blog/2016/07/28/esp8266-and-
 
 ###Issues:
 
-When the nodemcu boots up with MicroPython, it runs "boot.py" and then "main.py". If you run the main function of "colors.py" in "main.py", you'll get stuck in an infinite loop, since its going to be waiting for a publish to a mqtt topic it subscribed to. In order to get rid of this, I just flashed "colors.py" onto the board, typed "screen /dev/tty.SLAB_USBtoUART 115200" and automatically started and stopped the script (helpful for debugging). Another option would be to just add a break, when a certain topic is called. then you'd be able to access the board via ampy, or screen or whatever you're using.
+When the nodemcu boots up with MicroPython, it runs "boot.py" and then "main.py". If you run the main function of "mlight.py" in "main.py", you'll get stuck in an infinite loop, since its going to be waiting for a publish to a mqtt topic it subscribed to. In order to get rid of this, I just flashed "mlight.py" onto the board, typed "screen /dev/tty.SLAB_USBtoUART 115200" and automatically started and stopped the script (helpful for debugging). Another option would be to just add a break, when a certain topic is called. then you'd be able to access the board via ampy, or screen or whatever you're using.
 
 
 ###Bugs:
@@ -57,4 +57,4 @@ Brightness of the colors. If you have a color on and then change the brightness,
 
 
 ###TODO:
-* Add json support! I will be working on this in the next week or so.
+* Add json support! I will be working on this in the next week or so. This will be the mjlight.py file.
