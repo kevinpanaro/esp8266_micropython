@@ -8,7 +8,6 @@ from sys import exit
 import ubinascii
 import machine
 import network
-import police
 # ESP8266 ESP-12 modules have blue, active-low LED on GPIO2, replace
 # with something else if needed.
 '''
@@ -31,11 +30,11 @@ switch:
     payload_off: "dead"
 '''
 # Wifi 
-SSID = ""
-PASS = ""
+SSID = "groovetube"
+PASS = "panaro11"
 
 # MQTT server to connect to 
-SERVER = "192.168.0.10" 
+SERVER = "192.168.0.102" 
 CLIENT_ID = ubinascii.hexlify(machine.unique_id())
 STATE_TOPIC= b"led/status"
 COMMAND_TOPIC = b"led/switch"
@@ -67,17 +66,17 @@ def publish_payload(topic, payload):
 
 def get_hsv_value(colors):
     '''returns value in hsv'''
-    r, g, b = [int(color)/255.0 for color in colors]
+    r, g, b = [int(color) / 255.0 for color in colors]
     h, s, v = rth(r, g, b)
     return h, s, v
 
 def get_rgb_value(color, new_value):
     '''returns value in rgb'''
     h, s, _ = get_hsv_value(color)
-    r, g, b = [int(round(color*255)) for color in htr(h, s, new_value)]
+    r, g, b = [int(round(color * 255)) for color in htr(h, s, new_value)]
     return r, g, b
 
-def set_led(new=(0,0,0), smooth=50, transition=0):
+def set_led(new=(0, 0, 0), smooth=50, transition=0):
     '''
     new is the new color (RED, GREEN, BLUE)
     smooth is how many "frames" of color to create and display
@@ -85,22 +84,26 @@ def set_led(new=(0,0,0), smooth=50, transition=0):
     transition is 0 right now, but will be implimented with MQTT JSON
     '''
     global LIGHT_STATE
-    red = list(linspace(LIGHT_STATE[0], new[0], smooth))
-    green = list(linspace(LIGHT_STATE[1], new[1], smooth))
-    blue = list(linspace(LIGHT_STATE[2], new[2], smooth))
-    for color in zip(red,green,blue):
+    for color in linspace(LIGHT_STATE, new, smooth):
         for led in range(NUM_OF_LEDS):
             NEOPIXEL[led] = color
         NEOPIXEL.write()
         sleep(transition/smooth)
     LIGHT_STATE = new
 
-def linspace(a,b, n=100):
+def linspace(old, new, n=50):
     if n < 2:
-        yield b
-    diff = (float(b) - a)/(n - 1)
+        yield new
+    old_red, old_green, old_blue = old
+    new_red, new_green, new_blue = new
+    diff_red = (float(new_red) - old_red)/(n-1)
+    diff_green = (float(new_green) - old_green)/(n-1)
+    diff_blue = (float(new_blue) - old_blue)/(n-1)
     for i in range(n):
-        yield int(round(diff * i + a))
+        red = int(round(diff_red * i + old_red))
+        green = int(round(diff_green * i + old_green))
+        blue = int(round(diff_blue * i + old_blue))
+        yield (red, green, blue)
 
 def sub_cb(topic, msg):
     global STATE
@@ -143,12 +146,6 @@ def sub_cb(topic, msg):
             exit()
         else:
             publish_payload(KILL_STATE_TOPIC, "alive")
-    elif topic == SCENES_COMMAND_TOPIC:
-        if msg == b'police':
-            police.police()
-            publish_payload(STATE_TOPIC, "ON")
-            publish_payload(BRIGHTNESS_STATE_TOPIC, 255)
-            set_led()
 
 def reconnect():
     c.set_callback(sub_cb)
