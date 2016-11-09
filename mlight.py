@@ -30,8 +30,8 @@ switch:
     payload_off: "dead"
 '''
 # Wifi 
-SSID = "groovetube"
-PASS = "***REMOVED***"
+SSID = ""
+PASS = ""
 
 # MQTT server to connect to 
 SERVER = "192.168.0.102" 
