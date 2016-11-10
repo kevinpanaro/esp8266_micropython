@@ -2,12 +2,13 @@
 ###### MQTT light component for Home Assistant with ws2812 LED's, and an esp8266 (Nodemcu) flashed with MicroPython
 
 ##Features:
-1. Control your MQTT Lights from Home Assistant
+1. Control your MQTT Lights from Home Assistant (Both mqtt\_light, and mqtt\_json\_light supported.)
 2. When a color is picked, the relative brightness of that color is set on the brightness slider
 3. When a color is picked, and the brightness slider moved, the current color moves as well
 
+
 ###Short and Sweet
-All you  need is the no-webrepl.bin and mlight.py. flash no-webrepl.bin to the board, and copy mlight.py to the board, named as main.py.
+All you  need is the no-webrepl.bin and mlight.py or mjlight.py. flash no-webrepl.bin to the board, and copy mlight.py or mjlight.py to the board, named as main.py. The configuration for the component in home assistant is int the scripts.
 
 
 ###Setup the Board:
