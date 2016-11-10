@@ -20,16 +20,15 @@ light:
     rgb: true
     brightness: true
 '''
-# Wifi 
-SSID = "groovetube"
-PASS = "panaro11"
+# WiFi
+SSID = ""
+PASS = ""
 
 # MQTT server to connect to 
 SERVER = "192.168.0.102" 
 CLIENT_ID = ubinascii.hexlify(machine.unique_id())
 STATE_TOPIC= b"home/light/mqtt_json/rgb1"
 COMMAND_TOPIC = b"home/light/mqtt_json/rgb1/set"
-
 
 LED_PIN = 5
 NUM_OF_LEDS = 6
@@ -52,7 +51,7 @@ def get_rgb_value(color, new_value):
     r, g, b = [int(round(color * 255)) for color in htr(h, s, new_value)]
     return r, g, b
 
-def set_led(new=(0, 0, 0), smooth=50, transition=0):
+def set_led(new=(0, 0, 0), smooth=50.0, transition=0):
     '''
     new is the new color (RED, GREEN, BLUE)
     smooth is how many "frames" of color to create and display
@@ -83,52 +82,58 @@ def linspace(old, new, n=50):
 
 def publish_payload(pub_payload):
     '''publish to a topic with a payload'''
-    c.publish(STATE_TOPIC, (pub_payload))
-    print("[Publish]\t%s" % (pub_payload))
+    c.publish(STATE_TOPIC, ujson.dumps(pub_payload))
+    print("[Publish]\t%s" % ujson.dumps(pub_payload))
 
 def sub_cb(topic, payload):
-    print(payload)
-    payload = ujson.loads(payload.decode("utf-8"))
-    def get_color():
-        return (payload["color"]["r"], payload["color"]["g"], payload["color"]["b"])
+    '''
+      Callback function:
+        takes payload handles it, posts it back
 
-    def get_brightness(color):
-        return tuple(get_rgb_value(color, payload["brightness"]/255.0))
+      TODO(kev): bring transition out from.
 
-    def get_transition():
-        return payload['transition']
+    '''
 
     global STATE
     global RGB_STATE
-    if payload["state"] == "OFF" and STATE == "ON":
-        # turn off
+
+    payload = ujson.loads(payload.decode("utf-8"))
+
+    def get_color():            # Get color from payload dict/json
+        return (payload["color"]["r"], payload["color"]["g"], payload["color"]["b"])
+
+    def get_brightness(color, brightness):  # returns rgb value
+        return tuple(get_rgb_value(color, brightness/255.0))
+
+    try:    # get transition
+        transition = payload['transition']
+    except KeyError:
+        transition = 0
+
+    if payload["state"] == "OFF": # STATE maybe not needed
+        # Turn off only if on. 
         STATE = "OFF"
         RGB_STATE = (0, 0, 0)
-        set_led()
         pub_payload = {"state": "OFF"}
-        publish_payload(ujson.dumps(pub_payload))
-    elif payload["state"] == "ON" and STATE == "OFF" and len(payload) == 1:
+        publish_payload(pub_payload)
+        set_led(transition=transition)
+    elif payload["state"] == "ON" and len(payload) == 1:
         # turn on but look for other variables first
         STATE = "ON"
         RGB_STATE = (255, 255, 255)
-        set_led(new = RGB_STATE)
-        pub_payload = {"state": "ON"}
-        publish_payload(ujson.dumps(pub_payload))
+        pub_payload = {"state": "ON", "brightness": 255, "color": {"r": 255, "g": 255, "b": 255}}
+        publish_payload(pub_payload)
+        set_led(new = RGB_STATE, transition=transition)
     elif payload["state"] == "ON":
-        try:
+        try:        # happens only when a scene is set and the 
+                    # user puts in a brightness and color
             if payload["brightness"] and payload["color"]:
                 color = get_color()
-                brightness = get_brightness(color)
-                try:
-                    transition = get_transition()
-                    set_led(new=brightness, smooth=75, transition=transition)
-                except KeyError:
-                    set_led(new=color, smooth=75)
-                RGB_STATE = color
-                pub_payload = {"brightness": payload["brightness"]}
-                publish_payload(ujson.dumps(pub_payload))
-                pub_payload = {"color": payload['color']}
-                publish_payload(ujson.dumps(pub_payload))
+                brightness = get_brightness(color, payload['brightness'])
+                RGB_STATE = brightness
+                pub_payload = {"state": "ON", "brightness": payload["brightness"], "color": payload['color']}
+                publish_payload(pub_payload)
+                set_led(new=brightness, smooth=75.0, transition=transition)
         except KeyError:
             pass # not both brightness and color
 
@@ -136,16 +141,10 @@ def sub_cb(topic, payload):
             if payload["color"]:
                 color = get_color()
                 _, _, v = get_hsv_value(color)
-                try:
-                    transition = get_transition()
-                    set_led(new=color, smooth=75, transition=transition)
-                except KeyError:
-                    set_led(new=color, smooth=75)
                 RGB_STATE = color
-                pub_payload = {"brightness": int(v * 255)}
-                publish_payload(ujson.dumps(pub_payload))
-                pub_payload = {"color": payload["color"]}
-                publish_payload(ujson.dumps(pub_payload))
+                pub_payload = {"state": "ON", "brightness": int(v * 255.0),"color": payload["color"]}
+                publish_payload(pub_payload)
+                set_led(new=color, smooth=75.0, transition=transition)
         except KeyError:
             pass # not just color
 
@@ -155,16 +154,10 @@ def sub_cb(topic, payload):
                 if brightness < 0 or brightness > 255:
                     return
                 else:
-                    color = get_rgb_value(RGB_STATE, brightness/255)
-                    try:
-                        transition = get_transition()
-                        set_led(new=color, smooth=75, transition=transition)
-                    except KeyError:
-                        set_led(new=color, smooth=75)
-                pub_payload = {"brightness": payload["brightness"]}
-                publish_payload(ujson.dumps(pub_payload))
-                pub_payload = {"color": {"r": color[0], "g": color[1], "b": color[2]}}
-                publish_payload(ujson.dumps(pub_payload))
+                    color = get_rgb_value(RGB_STATE, brightness/255.0)
+                    pub_payload = {"state": "ON", "brightness": int(payload["brightness"]), "color": {"r": color[0], "g": color[1], "b": color[2]}}
+                    publish_payload(pub_payload)
+                    set_led(new=color, smooth=75.0, transition=transition)
         except KeyError:
             pass
 
